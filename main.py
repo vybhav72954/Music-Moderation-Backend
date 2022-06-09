@@ -1,5 +1,4 @@
 from flask import Flask, render_template
-from deepgram import Deepgram
 from dotenv import load_dotenv
 import os
 import asyncio
@@ -15,8 +14,6 @@ from typing import Dict, Callable
 load_dotenv()
 
 app = Flask('aioflask')
-
-dg_client = Deepgram(os.getenv('DEEPGRAM_API_KEY'))
 
 async def process_audio(fast_socket: web.WebSocketResponse):
     async def get_transcript(data: Dict) -> None:

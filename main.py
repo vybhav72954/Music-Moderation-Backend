@@ -14,8 +14,7 @@ HTTP_SERVER_PORT = 5000
 def index():
     return render_template('index.html')
 
-
-@app.route('/api/listen', methods=['GET', 'POST'])
+@app.route('/api/transcribe', methods=['GET'])
 def ReturnJSON():
     if request.method == 'GET':
         data = {
@@ -25,6 +24,28 @@ def ReturnJSON():
 
         return jsonify(data)
 
+# api endpoint for mobile app to send audio bytes to
+# accepts POST requests with JSON data
+# if audio is missing, returns "fuck off"
+# data:
+#
+# audio: bytes
+# 
+@app.route('/api/transcribe', methods=['POST'])
+def transcribe_endpoint():
+    # check for JSON content type
+    content_type = request.headers.get('Content-Type')
+    if (content_type == 'application/json'):
+        # get JSON and if it has audio bytes - process it
+        json = request.json
+        if 'audio' in json:
+            # transcribe audio (this is a placeholder)
+            data = json
+            return jsonify(data)
+
+    # else (any error) -> return fuck off
+    data = { 'fuck':'off' }
+    return jsonify(data)
 
 '''
 async def socket(request):

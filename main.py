@@ -1,17 +1,21 @@
 import os
 import asyncio
+from flask_sock import Sock
 
 from flask import Flask, jsonify, request, render_template
 
-app = Flask(__name__)
 
+app = Flask(__name__)
+sockets = Sock(app)
+
+HTTP_SERVER_PORT = 5000
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
 
-@app.route('/listen', methods=['GET'])
+@app.route('/api/listen', methods=['GET', 'POST'])
 def ReturnJSON():
     if request.method == 'GET':
         data = {

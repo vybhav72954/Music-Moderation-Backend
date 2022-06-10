@@ -1,5 +1,7 @@
-# ignore midi files
+# ignore midi and text files
 *.mid
+*.txt
+*.pdf
 
 # ignore model files
 *.pt

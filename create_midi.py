@@ -12,10 +12,7 @@ BPM = 60
 
 # chunk size
 CHUNK = 512
-# audio format
-# upd 6/9/22 - need to validate this format with whatever is coming from client
 # SET CLIENT TO PCM 16-BIT
-FORMAT = pyaudio.paInt16
 # get information about microphone channels - MONO
 CHANNELS = 1
 # sampling rate

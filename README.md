@@ -10,23 +10,8 @@
 
 ## API
 
----
-verb: POST
-endpoint: /api/transcribe
-request: { "audio": <BYTES OF AUDIO> }
-response: { "midi_file": <MIDI FILE NAME ON SERVER> }
----
+|verb|endpoint|request|response|notes|
+--- | --- | ---|---|---|
+|POST|/api/transcribe|{ "audio": BYTES OF AUDIO }|{ "midi_file": MIDI FILE NAME ON SERVER }|request must me in json, audio should be sent in PCM 16-bit format at 16kHz sampling rate|
+|GET|/api/transcribe| { any }|{ "Kidnap": "Influencer", "Subject": "Post Toilet Bowl for me" }|do we even need this?
 
-#### Notes:
-- request must me in json
-- audio should be sent in PCM 16-bit format at 16kHz sampling rate
-
----
-verb: GET
-endpoint: /api/transcribe
-json_data: { <any> }
-response: { "Kidnap": "Influencer", "Subject": "Post Toilet Bowl for me" }
----
-
-## Notes:
-- do we even need this?

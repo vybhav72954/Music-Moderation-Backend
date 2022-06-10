@@ -68,14 +68,14 @@ def transcribe_from_string(audio_string):
 # right now reference midi file name = None and it WILL crash when executed
 def extract_errors(midi_file_name, reference_midi_file_name):
     # run alignment tool
-    os.system('mv {user_file_name} AlignmentTool/{user_file_name} && mv {reference_file_name} AlignmentTool/{reference_file_name} && cd AlignmentTool/ && ./MIDIToMIDIAlign.sh {user_file_name}[:-4] {reference_file_name}[:-4] && cd ..')
+    os.system('mv {user_file_name} AlignmentTool/{user_file_name} && mv {reference_midi_file_name} AlignmentTool/{reference_midi_file_name} && cd AlignmentTool/ && ./MIDIToMIDIAlign.sh {user_file_name}[:-4] {reference_midi_file_name}[:-4] && cd ..')
     # load tables into panda
-    corresp_file_name = reference_file_name[:-4] + "_corresp.txt"
+    corresp_file_name = reference_midi_file_name[:-4] + "_corresp.txt"
     corresp_header = ["id", "onset_time", "spelled_pitch", "integer_pitch", "onset_velocity", "reference_id",
                 "reference_onset_time", "reference_spelled_pitch", "reference_integer_pitch", "reference_onset_velocity", "blank"]
     corresp_data = pd.read_csv(corresp_file_name, sep='\t', skiprows=[0], names=corresp_header, index_col=0)
 
-    match_file_name = reference_file_name[:-4] + "_match.txt"
+    match_file_name = reference_midi_file_name[:-4] + "_match.txt"
     match_header = ["id", "onset_time", "offset_time", "spelled_pitch", "onset_velocity",
                 "offset_velocity", "channel", "match_status", "score_time", "note_id",
                 "error_index", "skip_index"]

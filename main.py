@@ -45,13 +45,13 @@ def transcribe_endpoint():
         if 'audio' in json:
             # transcribe audio (this is a placeholder)
             user_midi_file_name = create_midi.transcribe_from_string(json['audio'])
-            
+
             # parse resulting midi to get errors and return extra notes (pitch + time)
             # THIS WILL NOT WORK, NEED REFERENCE FILE
             # user_mistakes = create_midi.extract_errors(user_midi_file_name, reference_midi_file_name=None)
 
             # this is a dummy temporary return !!!!!
-            data = { "midi_file":midi_file_name }
+            data = { "midi_file":user_midi_file_name }
             return jsonify(data)
 
     # else (any error) -> return fuck off

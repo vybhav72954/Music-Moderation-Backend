@@ -1,3 +1,9 @@
+# ignore midi files
+*.mid
+
+# ignore model files
+*.pt
+
 # Default ignored files
 /shelf/
 /workspace.xml

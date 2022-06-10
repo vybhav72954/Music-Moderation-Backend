@@ -1,6 +1,10 @@
+## USE PYTHON 3.7
+## AMT WILL NOT WORK ON HIGHER VERSION
+
 import os
 import asyncio
 from flask_sock import Sock
+import create_midi
 
 from flask import Flask, jsonify, request, render_template
 
@@ -40,7 +44,12 @@ def transcribe_endpoint():
         json = request.json
         if 'audio' in json:
             # transcribe audio (this is a placeholder)
-            data = json
+            midi_file_name = create_midi.transcribe_from_string(json['audio'])
+            # parse resulting midi to get errors and return extra notes (pitch + time)
+            # <code here>
+
+            # this is a dummy temporary return !!!!!
+            data = { "midi_file":midi_file_name }
             return jsonify(data)
 
     # else (any error) -> return fuck off

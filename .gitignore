@@ -6,6 +6,9 @@
 # ignore model files
 *.pt
 
+# compiled alignment tool
+/AlignmentTool/Programs/
+
 # Default ignored files
 /shelf/
 /workspace.xml

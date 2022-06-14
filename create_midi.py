@@ -81,18 +81,68 @@ def extract_errors(midi_file_name, reference_midi_file_name):
                 "error_index", "skip_index"]
     match_data = pd.read_csv(match_file_name, sep='\t', skiprows=[0,1,2,3], names=match_header, index_col=0)[:-2]
 
-    # extra notes - only need user onset time and spelled pitch
-    extra_notes = match_data[match_data['error_index'] == 3]
+    # this has to be a dictionary of all notes - pitches and time (reference + mistakes)
+    # return format:
+    # bpm
+    # timesig
+    # notes: [
+    #     measure
+    #     pitch_integer
+    #     pitch_spelled
+    #     onset_time -> seconds from start of measure
+    #     length -> note length (like "1/4")
+    #     note_type -> "extra, missing, incorrect, reference"
+    # ]
 
-    # missing notes - only need reference onset time and spelled pitch
-    missing_notes = corresp_data[corresp_data.index == '*']
+    # code below is untested, need audio from Mohamed and reference midi
 
-    # notes with incorrect pitch only need reference onset time and spelled pitch
-    incorrect_notes = match_data[match_data['error_index'] == 1]
+    reference_bpm = 60 # should come from midi
+    reference_timesig_numerator = 4 # should come from midi
+    reference_timesig_denominator = 4 # should come from midi
+    # measure is time / beats per second * 4 (give 4/4 time signature)
+    measure = lambda time : time // (reference_bpm/60*4)
 
-    # incorrect/missing pauses
-    pause_data = aligned_data[['onset_time', 'reference_onset_time']]
-    pause_data['time_diff'] = pause_data.reference_onset_time - pause_data.onset_time
+    performance_data = {
+        'bpm': reference_bpm,
+        'timesig' = str(reference_timesig_numerator) + "/" + str(reference_timesig_denominator)
+        'notes' = []
+    }
 
-    # this has to be a dictionary of all mistakes - pitches and time (user/reference)
-    return { 'mistakes': 'exist' }
+    for idx, row in corresp_data.iterrows():
+        # get note info
+        pitch_played_spelled = None
+        pitch_integer = row['reference_integer_pitch']
+        pitch_spelled = row['reference_spelled_pitch']
+        onset_time = row['reference_onset_time']
+        # !!!!! oh fuck we don't have reference offset here so no length ffs
+        measure = measure(onset_time)
+        note_type = "reference"
+        # process extra notes
+        if row['reference_id'] == '*':
+            note_type = "extra"
+            pitch_integer = row['integer_pitch']
+            pitch_spelled = row['spelled_pitch']
+            onset_time = row['onset_time']
+        # process missing notes
+        elif idx = '*':
+            note_type = "missing"
+        # process incorrect pitch
+        elif match_data.iloc[[idx]]["error_index"] == 1:
+            note_type = "incorrect"
+            pitch_played_spelled = match_data.iloc[[idx]]['spelled_pitch']
+
+        note = {
+            'measure' = measure,
+            'pitch_integer' = pitch_integer
+            'pitch_spelled' = pitch_spelled
+            'pitch_played_spelled' = pitch_played_spelled
+            'onset_time' = onset_time
+            'length' = None
+            'note_type' = note_type
+        }
+
+        performance_data['notes'].append(note)
+
+    # it would be good to remove generated txt files and the midi files here
+
+    return performance_data

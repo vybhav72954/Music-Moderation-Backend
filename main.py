@@ -82,4 +82,4 @@ async def process_audio(fast_socket: web.WebSocketResponse):
 if __name__=="__main__":
     loop = asyncio.get_event_loop()
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='localhost', port=5000, debug=True)
+    app.run(host='192.168.1.6')

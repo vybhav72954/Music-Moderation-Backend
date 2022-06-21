@@ -4,6 +4,9 @@ from midiutil import MIDIFile
 import base64, io, os
 import time as timestamp
 import pandas as pd
+import wave
+import pyaudio
+import subprocess as subp
 
 # BPM that should be set by the song user is playing
 # upd 6/9/22 - this doesn't really matter because we are using seconds
@@ -31,15 +34,30 @@ def transcribe_from_string(audio_string):
     MyMIDI.addTempo(0, 0, BPM)
     # decode audio
     audio_bytes = base64.b64decode(audio_string)
+    # create a timestamp (for file names)
+    ts = timestamp.time()
+    # write wav file
+    audio_file_name = str(ts) + ".wav"
+    # print(audio_bytes)
+    with open(audio_file_name, "w+b") as file:
+       file.write(audio_bytes)
+    # wtf
+    # subp.check_call("ffmpeg -i " + audio_file_name + " -acodec pcm_s16le -ac 1 -ar 16000 " + audio_file_name, shell=True)
+    # read wav file
+    f = wave.open(audio_file_name, "rb")
     # create audio bytestream
-    audio_stream = io.BytesIO(audio_bytes)
-    # read first chunk
-    buffer = audio_stream.read(CHUNK)
+    p = pyaudio.PyAudio()
+    stream = p.open(format = p.get_format_from_width(f.getsampwidth()),  
+                channels = f.getnchannels(),  
+                rate = f.getframerate(),  
+                output = True)
+    # read first chunk of audio
+    buffer = f.readframes(CHUNK)
     frame = 0
     # iterate through the audio by chunk
     while buffer:
         # decode data from buffer
-        decoded = np.frombuffer(buffer, dtype=np.int16) / 32768
+        decoded = np.frombuffer(buffer, dtype=np.int16)
         # transcribe the audio to see what what notes came on and off
         frame_output = transcriber.inference(decoded)
         # when model detects onset of a note
@@ -54,11 +72,15 @@ def transcribe_from_string(audio_string):
             # print note information
             print(pitch, time)
         # read next chunk
-        buffer = audio_stream.read(CHUNK)
+        buffer = f.readframes(CHUNK)
         frame += 1
 
+    # close pyaudio stream
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
+
     # save midi file
-    ts = timestamp.time()
     midi_file_name = str(ts) + ".mid"
     with open(midi_file_name, "w+b") as output_file:
         MyMIDI.writeFile(output_file)
@@ -66,16 +88,16 @@ def transcribe_from_string(audio_string):
     return midi_file_name
 
 # right now reference midi file name = None and it WILL crash when executed
-def extract_errors(midi_file_name, reference_midi_file_name):
+def extract_errors(user_midi_file_name, reference_midi_file_name):
     # run alignment tool
-    os.system('mv {user_file_name} AlignmentTool/{user_file_name} && mv {reference_midi_file_name} AlignmentTool/{reference_midi_file_name} && cd AlignmentTool/ && ./MIDIToMIDIAlign.sh {user_file_name}[:-4] {reference_midi_file_name}[:-4] && cd ..')
+    # subp.check_call('mv ' + user_midi_file_name + ' AlignmentTool/' + user_midi_file_name + ' && mv ' + reference_midi_file_name + ' AlignmentTool/' + reference_midi_file_name + ' && cd AlignmentTool/ && ./MIDIToMIDIAlign.sh ' + user_midi_file_name[:-4] + ' ' + reference_midi_file_name[:-4] + ' && cd ..', shell=True)
     # load tables into panda
-    corresp_file_name = reference_midi_file_name[:-4] + "_corresp.txt"
+    corresp_file_name = 'AlignmentTool/' + reference_midi_file_name[:-4] + "_corresp.txt"
     corresp_header = ["id", "onset_time", "spelled_pitch", "integer_pitch", "onset_velocity", "reference_id",
                 "reference_onset_time", "reference_spelled_pitch", "reference_integer_pitch", "reference_onset_velocity", "blank"]
     corresp_data = pd.read_csv(corresp_file_name, sep='\t', skiprows=[0], names=corresp_header, index_col=0)
 
-    match_file_name = reference_midi_file_name[:-4] + "_match.txt"
+    match_file_name = 'AlignmentTool/' + reference_midi_file_name[:-4] + "_match.txt"
     match_header = ["id", "onset_time", "offset_time", "spelled_pitch", "onset_velocity",
                 "offset_velocity", "channel", "match_status", "score_time", "note_id",
                 "error_index", "skip_index"]
@@ -100,12 +122,12 @@ def extract_errors(midi_file_name, reference_midi_file_name):
     reference_timesig_numerator = 4 # should come from midi
     reference_timesig_denominator = 4 # should come from midi
     # measure is time / beats per second * 4 (give 4/4 time signature)
-    measure = lambda time : time // (reference_bpm/60*4)
+    measure_func = lambda time : time // (reference_bpm/60*4)
 
     performance_data = {
         'bpm': reference_bpm,
-        'timesig' = str(reference_timesig_numerator) + "/" + str(reference_timesig_denominator)
-        'notes' = []
+        'timesig': str(reference_timesig_numerator) + "/" + str(reference_timesig_denominator),
+        'notes': []
     }
 
     for idx, row in corresp_data.iterrows():
@@ -115,7 +137,7 @@ def extract_errors(midi_file_name, reference_midi_file_name):
         pitch_spelled = row['reference_spelled_pitch']
         onset_time = row['reference_onset_time']
         # !!!!! oh fuck we don't have reference offset here so no length ffs
-        measure = measure(onset_time)
+        measure = measure_func(onset_time)
         note_type = "reference"
         # process extra notes
         if row['reference_id'] == '*':
@@ -124,21 +146,21 @@ def extract_errors(midi_file_name, reference_midi_file_name):
             pitch_spelled = row['spelled_pitch']
             onset_time = row['onset_time']
         # process missing notes
-        elif idx = '*':
+        elif idx == '*':
             note_type = "missing"
         # process incorrect pitch
-        elif match_data.iloc[[idx]]["error_index"] == 1:
+        elif match_data.loc[idx]["error_index"] == 1:
             note_type = "incorrect"
             pitch_played_spelled = match_data.iloc[[idx]]['spelled_pitch']
 
         note = {
-            'measure' = measure,
-            'pitch_integer' = pitch_integer
-            'pitch_spelled' = pitch_spelled
-            'pitch_played_spelled' = pitch_played_spelled
-            'onset_time' = onset_time
-            'length' = None
-            'note_type' = note_type
+            'measure': measure,
+            'pitch_integer': pitch_integer,
+            'pitch_spelled': pitch_spelled,
+            'pitch_played_spelled': pitch_played_spelled,
+            'onset_time': onset_time,
+            'length': None,
+            'note_type': note_type
         }
 
         performance_data['notes'].append(note)
@@ -146,3 +168,5 @@ def extract_errors(midi_file_name, reference_midi_file_name):
     # it would be good to remove generated txt files and the midi files here
 
     return performance_data
+
+print(extract_errors("test_user.mid", "test_ref.mid"))

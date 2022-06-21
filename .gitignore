@@ -2,6 +2,8 @@
 *.mid
 *.txt
 *.pdf
+# also ignore wav files
+*.wav
 
 # ignore model files
 *.pt
